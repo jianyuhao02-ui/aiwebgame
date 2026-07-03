@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import { templates } from '../data/templates'
 import TemplateCard from '../components/TemplateCard'
 import MyAppPanel from '../components/MyAppPanel'
+import ExportButton from '../components/ExportButton'
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -27,17 +28,16 @@ export default function Home() {
   }, []);
 
   useEffect(() => {
-    // lazy load lottie and play animation based on mascotState
+    // load lottie and play animation based on mascotState using local files
     let mounted = true;
     async function load() {
       const lottie = (await import('lottie-web'))?.default;
       if (!lottie || !mounted) return;
       const container = lottieRef.current;
       if (!container) return;
-      // choose animation URL by state
-      let path = 'https://assets9.lottiefiles.com/packages/lf20_x62chJ.json'; // default idle
-      if (mascotState === 'happy') path = 'https://assets10.lottiefiles.com/packages/lf20_touohxv0.json';
-      if (mascotState === 'sad') path = 'https://assets2.lottiefiles.com/packages/lf20_jmgekfqg.json';
+      let path = '/animations/idle.json';
+      if (mascotState === 'happy') path = '/animations/happy.json';
+      if (mascotState === 'sad') path = '/animations/sad.json';
 
       if (animRef.current) {
         try { animRef.current.destroy(); } catch {}
@@ -127,7 +127,6 @@ export default function Home() {
   function handleDropToMyApp(id: string) {
     const t = templates.find(x => x.id === id);
     if (!t) return;
-    // prevent duplicates
     setMyItems(prev => prev.some(x => x.id === id) ? prev : [...prev, t]);
   }
 
@@ -171,7 +170,13 @@ export default function Home() {
         <MyAppPanel items={myItems} onRemove={removeItem} onDrop={handleDropToMyApp} />
 
         <div className="mt-6 card">
-          <label className="block text-sm font-medium text-gray-700">你的 Prompt</label>
+          <div className="flex items-center justify-between mb-3">
+            <label className="block text-sm font-medium text-gray-700">你的 Prompt</label>
+            <div className="flex items-center gap-2">
+              <ExportButton prompt={prompt} myItems={myItems} mascot={mascot} audioOn={audioOn} />
+            </div>
+          </div>
+
           <textarea
             className="mt-2 w-full h-32 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             value={prompt}
