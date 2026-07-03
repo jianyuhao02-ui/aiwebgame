@@ -7,8 +7,12 @@ type Props = {
 }
 
 export const TemplateCard: React.FC<Props> = ({ t, onUse }) => {
+  function handleDragStart(e: React.DragEvent) {
+    e.dataTransfer.setData('text/templateId', t.id);
+  }
+
   return (
-    <div className="w-64 p-4 bg-white rounded-xl shadow-md flex flex-col gap-2">
+    <div draggable onDragStart={handleDragStart} className="w-64 p-4 bg-white rounded-xl shadow-md flex flex-col gap-2">
       <div className="flex items-center justify-between">
         <h3 className="font-semibold">{t.title}</h3>
         <button onClick={() => onUse(t.content)} className="text-sm text-primary px-2 py-1 rounded-md border">使用</button>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { templates } from '../data/templates'
 import TemplateCard from '../components/TemplateCard'
+import MyAppPanel from '../components/MyAppPanel'
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -12,7 +13,10 @@ export default function Home() {
   const [audioOn, setAudioOn] = useState(true);
   const [animateEmoji, setAnimateEmoji] = useState(false);
   const [mascotState, setMascotState] = useState<'idle'|'happy'|'sad'>('idle');
+  const [myItems, setMyItems] = useState<typeof templates>([]);
   const audioCtxRef = useRef<AudioContext | null>(null);
+  const lottieRef = useRef<any>(null);
+  const animRef = useRef<any>(null);
 
   useEffect(() => {
     try {
@@ -21,6 +25,35 @@ export default function Home() {
       audioCtxRef.current = null;
     }
   }, []);
+
+  useEffect(() => {
+    // lazy load lottie and play animation based on mascotState
+    let mounted = true;
+    async function load() {
+      const lottie = (await import('lottie-web'))?.default;
+      if (!lottie || !mounted) return;
+      const container = lottieRef.current;
+      if (!container) return;
+      // choose animation URL by state
+      let path = 'https://assets9.lottiefiles.com/packages/lf20_x62chJ.json'; // default idle
+      if (mascotState === 'happy') path = 'https://assets10.lottiefiles.com/packages/lf20_touohxv0.json';
+      if (mascotState === 'sad') path = 'https://assets2.lottiefiles.com/packages/lf20_jmgekfqg.json';
+
+      if (animRef.current) {
+        try { animRef.current.destroy(); } catch {}
+      }
+
+      animRef.current = lottie.loadAnimation({
+        container,
+        renderer: 'svg',
+        loop: true,
+        autoplay: true,
+        path
+      });
+    }
+    load();
+    return () => { mounted = false; if (animRef.current) try { animRef.current.destroy(); } catch {} };
+  }, [mascotState]);
 
   function playTone(type: 'happy'|'sad'|'error') {
     if (!audioOn) return;
@@ -88,21 +121,30 @@ export default function Home() {
   }
 
   function useTemplate(content: string) {
-    // Replace current prompt with template content for clarity for zero-basis users
     setPrompt(content);
-    // small visual cue could be added later
+  }
+
+  function handleDropToMyApp(id: string) {
+    const t = templates.find(x => x.id === id);
+    if (!t) return;
+    // prevent duplicates
+    setMyItems(prev => prev.some(x => x.id === id) ? prev : [...prev, t]);
+  }
+
+  function removeItem(id: string) {
+    setMyItems(prev => prev.filter(x => x.id !== id));
   }
 
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-4xl w-full">
+      <div className="max-w-5xl w-full">
         <div className="card flex items-center gap-4">
-          <div className="w-20 h-20 flex items-center justify-center rounded-lg" style={{background: 'linear-gradient(135deg,var(--color-cream),white)'}}>
-            <img src={mascot === 'cat' ? '/assets/cat.svg' : '/assets/dog.svg'} alt="mascot" className={`mascot ${mascotState}`} />
+          <div className="w-24 h-24 flex items-center justify-center rounded-lg" style={{background: 'linear-gradient(135deg,var(--color-cream),white)'}}>
+            <div style={{width:96, height:96}} ref={lottieRef}></div>
           </div>
           <div>
             <h1 className="title text-3xl">AI 小精灵</h1>
-            <p className="text-sm text-gray-500">通过拖拽魔法卡和一句话，喂养你的 AI 宠物。试试点击下方模板开始。</p>
+            <p className="text-sm text-gray-500">通过拖拽魔法卡和一句话，喂养你的 AI 宠物。把卡片拖进「我的应用面板」来组合你的微型应用。</p>
           </div>
 
           <div className="ml-auto flex flex-col items-end gap-2">
@@ -116,7 +158,7 @@ export default function Home() {
 
         {/* Templates panel */}
         <div className="mt-6">
-          <h2 className="text-lg font-semibold mb-3">魔法卡片 — 点击即可使用</h2>
+          <h2 className="text-lg font-semibold mb-3">魔法卡片 — 点击或拖拽使用</h2>
           <div className="flex gap-4 overflow-x-auto pb-2">
             {templates.map(t => (
               <div key={t.id} className="flex-shrink-0">
@@ -126,13 +168,15 @@ export default function Home() {
           </div>
         </div>
 
+        <MyAppPanel items={myItems} onRemove={removeItem} onDrop={handleDropToMyApp} />
+
         <div className="mt-6 card">
           <label className="block text-sm font-medium text-gray-700">你的 Prompt</label>
           <textarea
             className="mt-2 w-full h-32 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="或者点击上方卡片快速开始"
+            placeholder="或者点击/拖拽上方卡片快速开始"
           />
 
           <div className="mt-4 flex gap-2 items-center">
