@@ -11,11 +11,10 @@ function escapeHtml(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 }
 
-export const ExportButton: React.FC<Props> = ({ prompt, myItems, mascot, audioOn }) => {
+export const ExportButton: React.FC<Props> = ({ prompt, myItems, mascot }) => {
   function buildHTML() {
     const itemsHtml = myItems.map(it => `<li><strong>${escapeHtml(it.title)}</strong>: ${escapeHtml(it.content)}</li>`).join('\n');
 
-    // Minimal single-file HTML that displays the prompt and components; includes instructions to add OPENAI_API_KEY
     return `<!doctype html>
 <html>
 <head>
@@ -64,7 +63,6 @@ export const ExportButton: React.FC<Props> = ({ prompt, myItems, mascot, audioOn
       const prompt = document.getElementById('prompt').innerText;
 
       if (!key) {
-        // Mocked response
         setTimeout(() => {
           resultEl.innerText = '（示例输出）这是一个本地导出的微应用示例。\nPrompt: ' + prompt;
         }, 600);
@@ -103,8 +101,24 @@ export const ExportButton: React.FC<Props> = ({ prompt, myItems, mascot, audioOn
     URL.revokeObjectURL(url);
   }
 
+  function handleExportNode() {
+    const nodeCode = `// my-ai-microapp.js\n// Usage: node my-ai-microapp.js\n// Set OPENAI_API_KEY in env to enable real calls.\nconst fetch = require('node-fetch');\n(async function(){\n  const prompt = ${JSON.stringify(prompt || '')};\n  const key = process.env.OPENAI_API_KEY;\n  if (!key) {\n    console.log('示例模式：', prompt);\n    return;\n  }\n  const resp = await fetch('https://api.openai.com/v1/chat/completions',{\n    method:'POST', headers:{'Content-Type':'application/json','Authorization':'Bearer '+key},\n    body: JSON.stringify({ model:'gpt-3.5-turbo', messages:[{role:'user', content: prompt}], max_tokens:400 })\n  });\n  const j = await resp.json();\n  console.log(j.choices?.[0]?.message?.content || JSON.stringify(j));\n})();`;
+    const blob = new Blob([nodeCode], { type: 'text/javascript' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'my-ai-microapp.js';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
   return (
-    <button onClick={handleExport} className="px-4 py-2 rounded-full bg-primary text-white">导出微应用</button>
+    <div className="flex gap-2">
+      <button onClick={handleExport} className="px-3 py-2 rounded-full bg-primary text-white">导出微应用</button>
+      <button onClick={handleExportNode} className="px-3 py-2 rounded-full border">导出 Node 示例</button>
+    </div>
   )
 }
 
