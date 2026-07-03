@@ -1,4 +1,6 @@
 import { useEffect, useRef, useState } from 'react'
+import { templates } from '../data/templates'
+import TemplateCard from '../components/TemplateCard'
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -13,7 +15,6 @@ export default function Home() {
   const audioCtxRef = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    // lazy init AudioContext when component mounts
     try {
       audioCtxRef.current = new (window.AudioContext || (window as any).webkitAudioContext)();
     } catch (e) {
@@ -39,7 +40,7 @@ export default function Home() {
       g.gain.exponentialRampToValueAtTime(0.0001, now + 0.35);
       o.stop(now + 0.36);
     } catch (e) {
-      // ignore audio errors
+      // ignore
     }
   }
 
@@ -61,7 +62,6 @@ export default function Home() {
       setEmoji(data.emoji ?? '🤖');
       setExplain(data.explain ?? '');
 
-      // decide mascot state and audio
       const lower = reply.toLowerCase();
       if (/(笑|笑话|搞笑|🤣|哈哈)/.test(reply) || /(haha|lol)/.test(lower)) {
         setMascotState('happy');
@@ -74,7 +74,6 @@ export default function Home() {
         playTone('happy');
       }
 
-      // animate emoji briefly
       setAnimateEmoji(true);
       setTimeout(() => setAnimateEmoji(false), 700);
     } catch (err) {
@@ -84,21 +83,26 @@ export default function Home() {
       playTone('error');
     } finally {
       setLoading(false);
-      // return to idle after a short delay
       setTimeout(() => setMascotState('idle'), 1200);
     }
   }
 
+  function useTemplate(content: string) {
+    // Replace current prompt with template content for clarity for zero-basis users
+    setPrompt(content);
+    // small visual cue could be added later
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
-      <div className="max-w-3xl w-full">
+      <div className="max-w-4xl w-full">
         <div className="card flex items-center gap-4">
           <div className="w-20 h-20 flex items-center justify-center rounded-lg" style={{background: 'linear-gradient(135deg,var(--color-cream),white)'}}>
             <img src={mascot === 'cat' ? '/assets/cat.svg' : '/assets/dog.svg'} alt="mascot" className={`mascot ${mascotState}`} />
           </div>
           <div>
             <h1 className="title text-3xl">AI 小精灵</h1>
-            <p className="text-sm text-gray-500">通过拖拽魔法卡和一句话，喂养你的 AI 宠物。试试写个笑话 prompt。</p>
+            <p className="text-sm text-gray-500">通过拖拽魔法卡和一句话，喂养你的 AI 宠物。试试点击下方模板开始。</p>
           </div>
 
           <div className="ml-auto flex flex-col items-end gap-2">
@@ -110,13 +114,25 @@ export default function Home() {
           </div>
         </div>
 
+        {/* Templates panel */}
+        <div className="mt-6">
+          <h2 className="text-lg font-semibold mb-3">魔法卡片 — 点击即可使用</h2>
+          <div className="flex gap-4 overflow-x-auto pb-2">
+            {templates.map(t => (
+              <div key={t.id} className="flex-shrink-0">
+                <TemplateCard t={t} onUse={useTemplate} />
+              </div>
+            ))}
+          </div>
+        </div>
+
         <div className="mt-6 card">
           <label className="block text-sm font-medium text-gray-700">你的 Prompt</label>
           <textarea
             className="mt-2 w-full h-32 p-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
             value={prompt}
             onChange={(e) => setPrompt(e.target.value)}
-            placeholder="例如：请用亲切幽默的口吻写一个两段笑话，主题是猫和咖啡"
+            placeholder="或者点击上方卡片快速开始"
           />
 
           <div className="mt-4 flex gap-2 items-center">
