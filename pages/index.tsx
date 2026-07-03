@@ -3,6 +3,8 @@ import { templates } from '../data/templates'
 import TemplateCard from '../components/TemplateCard'
 import MyAppPanel from '../components/MyAppPanel'
 import ExportButton from '../components/ExportButton'
+import Auth from '../components/Auth'
+import supabase from '../lib/supabaseClient'
 
 export default function Home() {
   const [prompt, setPrompt] = useState('');
@@ -15,6 +17,8 @@ export default function Home() {
   const [animateEmoji, setAnimateEmoji] = useState(false);
   const [mascotState, setMascotState] = useState<'idle'|'happy'|'sad'>('idle');
   const [myItems, setMyItems] = useState<typeof templates>([]);
+  const [savedPets, setSavedPets] = useState<any[]>([]);
+
   const audioCtxRef = useRef<AudioContext | null>(null);
   const lottieRef = useRef<any>(null);
   const animRef = useRef<any>(null);
@@ -55,6 +59,19 @@ export default function Home() {
     return () => { mounted = false; if (animRef.current) try { animRef.current.destroy(); } catch {} };
   }, [mascotState]);
 
+  async function fetchSaved() {
+    // try Supabase client list via serverless GET /api/load which uses anon key
+    try {
+      const r = await fetch('/api/load');
+      const j = await r.json();
+      if (r.ok && j.data) setSavedPets(j.data);
+    } catch (e) {
+      // ignore
+    }
+  }
+
+  useEffect(() => { fetchSaved(); }, []);
+
   function playTone(type: 'happy'|'sad'|'error') {
     if (!audioOn) return;
     const ctx = audioCtxRef.current;
@@ -83,7 +100,19 @@ export default function Home() {
     setEmoji('⏳');
     setAnimateEmoji(true);
     setMascotState('idle');
+
     try {
+      // Before showing result, call emotion classifier to improve mascot state
+      const emoRes = await fetch('/api/emotion', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ text: prompt }) });
+      const emoJson = await emoRes.json();
+      if (emoRes.ok && emoJson.emotion) {
+        if (emoJson.emotion === 'happy' || emoJson.emotion === 'funny') setMascotState('happy');
+        else if (emoJson.emotion === 'sad') setMascotState('sad');
+        else setMascotState('idle');
+        setEmoji(emoJson.emoji || '🤖');
+        setExplain(emoJson.explain || '');
+      }
+
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -92,20 +121,11 @@ export default function Home() {
       const data = await res.json();
       const reply = data.text ?? '（无返回）';
       setResult(reply);
-      setEmoji(data.emoji ?? '🤖');
-      setExplain(data.explain ?? '');
 
-      const lower = reply.toLowerCase();
-      if (/(笑|笑话|搞笑|🤣|哈哈)/.test(reply) || /(haha|lol)/.test(lower)) {
-        setMascotState('happy');
-        playTone('happy');
-      } else if (/(悲伤|难过|哭|sad|tear)/.test(lower)) {
-        setMascotState('sad');
-        playTone('sad');
-      } else {
-        setMascotState('happy');
-        playTone('happy');
-      }
+      // play tone based on mascotState
+      if (mascotState === 'happy') playTone('happy');
+      else if (mascotState === 'sad') playTone('sad');
+      else playTone('happy');
 
       setAnimateEmoji(true);
       setTimeout(() => setAnimateEmoji(false), 700);
@@ -134,6 +154,24 @@ export default function Home() {
     setMyItems(prev => prev.filter(x => x.id !== id));
   }
 
+  async function savePet() {
+    const name = prompt('给你的宠物/微应用起个名字：') || ('pet-' + Date.now());
+    try {
+      const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, prompt, myItems, mascot }) });
+      const j = await res.json();
+      if (!res.ok) return alert('保存失败：' + (j.error || JSON.stringify(j)));
+      alert('保存成功');
+      fetchSaved();
+    } catch (e) { alert('保存失败：' + String(e)); }
+  }
+
+  async function loadPet(pet:any) {
+    if (!pet) return;
+    setPrompt(pet.prompt || '');
+    setMyItems(pet.my_items || []);
+    setMascot(pet.mascot || 'cat');
+  }
+
   return (
     <main className="min-h-screen flex items-center justify-center p-6">
       <div className="max-w-5xl w-full">
@@ -147,11 +185,8 @@ export default function Home() {
           </div>
 
           <div className="ml-auto flex flex-col items-end gap-2">
-            <div className="text-xs text-gray-500">吉祥物</div>
-            <div className="flex gap-2">
-              <button onClick={() => setMascot('cat')} className={`px-2 py-1 rounded-md border ${mascot==='cat'?'bg-primary text-white':'bg-white'}`}>猫</button>
-              <button onClick={() => setMascot('dog')} className={`px-2 py-1 rounded-md border ${mascot==='dog'?'bg-primary text-white':'bg-white'}`}>狗</button>
-            </div>
+            <div className="text-xs text-gray-500">账户</div>
+            <Auth />
           </div>
         </div>
 
@@ -215,8 +250,30 @@ export default function Home() {
         </div>
 
         <div className="mt-6 flex gap-2 justify-center">
-          <button className="px-4 py-2 rounded-full bg-mint text-white">保存宠物</button>
+          <button onClick={savePet} className="px-4 py-2 rounded-full bg-mint text-white">保存宠物</button>
           <button className="px-4 py-2 rounded-full border">分享</button>
+        </div>
+
+        <div className="mt-6 card">
+          <h3 className="font-semibold mb-2">已保存的宠物（最近）</h3>
+          {savedPets.length === 0 ? (
+            <div className="text-sm text-gray-400">暂无已保存的宠物</div>
+          ) : (
+            <div className="flex flex-col gap-2">
+              {savedPets.map(p => (
+                <div key={p.id} className="flex items-center justify-between bg-white p-3 rounded-md shadow-sm">
+                  <div>
+                    <div className="font-semibold">{p.name}</div>
+                    <div className="text-xs text-gray-500">{new Date(p.created_at).toLocaleString()}</div>
+                  </div>
+                  <div className="flex gap-2">
+                    <button onClick={() => loadPet(p)} className="px-2 py-1 border rounded-md">载入</button>
+                    <a href={`/api/load?id=${p.id}`} className="px-2 py-1 border rounded-md">查看</a>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
         </div>
 
         <p className="mt-6 text-xs text-gray-400 text-center">预览模式 — 真实体验需在环境变量中配置 OPENAI_API_KEY</p>
