@@ -10,7 +10,7 @@ module.exports = {
       },
       fontFamily: {
         sans: ['Inter', 'ui-sans-serif', 'system-ui', 'sans-serif'],
-        heading: ['Poppins', 'Inter', 'sans-serif']
+        heading: ['Patrick Hand', 'Poppins', 'Inter', 'sans-serif']
       }
     },
   },

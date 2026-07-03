@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;600;700&family=Poppins:wght@600;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Patrick+Hand&family=Inter:wght@300;400;600;700&display=swap');
 
 :root{
   --color-primary: #7c3aed;
@@ -22,5 +22,41 @@ body { font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', 
   @apply bg-white rounded-2xl p-6 shadow-lg;
 }
 .title {
-  font-family: Poppins, Inter, sans-serif;
+  font-family: 'Patrick Hand', Poppins, Inter, sans-serif;
+}
+
+/* Mascot and emoji animations */
+.mascot {
+  width: 96px;
+  height: 96px;
+  transition: transform 300ms ease, filter 300ms ease;
+}
+.mascot.idle {
+  animation: float 2600ms ease-in-out infinite;
+}
+.mascot.happy {
+  transform: translateY(-6px) scale(1.06);
+  filter: drop-shadow(0 12px 24px rgba(124,58,237,0.18));
+}
+.mascot.sad {
+  transform: translateY(6px) rotate(-6deg);
+  filter: grayscale(20%);
+}
+@keyframes float {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-8px); }
+  100% { transform: translateY(0); }
+}
+
+.emoji {
+  transition: transform 240ms ease;
+}
+.emoji.animate {
+  transform: scale(1.28) rotate(-6deg);
+}
+
+/* reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .mascot { animation: none !important; }
+  .emoji { transition: none !important; }
 }
