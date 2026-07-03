@@ -4,8 +4,8 @@ import { createClient } from '@supabase/supabase-js'
 // GET -> list pets
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') return res.status(405).json({ error: 'Method not allowed' });
-  const url = process.env.SUPABASE_URL;
-  const key = process.env.SUPABASE_ANON_KEY;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const key = process.env.SUPABASE_SERVICE_KEY;
   if (!url || !key) {
     return res.status(501).json({ error: 'Supabase not configured on server. Use client localStorage fallback.' });
   }

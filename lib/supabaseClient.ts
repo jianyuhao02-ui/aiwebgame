@@ -1,13 +1,11 @@
-import { createClient } from '@supabase/supabase-js'
+import { createClient, SupabaseClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL as string
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY as string
+const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!supabaseUrl || !supabaseAnonKey) {
-  // It's okay for local dev to not have these; components should handle missing client gracefully
-  // but createClient requires strings, so provide empty placeholders to avoid runtime crash during import
-}
-
-const supabase = createClient(supabaseUrl ?? '', supabaseAnonKey ?? '')
+// When env vars are missing (local dev without Supabase), export null instead of
+// creating a client pointing at an invalid URL. Components check for null.
+const supabase: SupabaseClient | null =
+  supabaseUrl && supabaseAnonKey ? createClient(supabaseUrl, supabaseAnonKey) : null
 
 export default supabase

@@ -5,8 +5,8 @@ export default function Auth() {
   const [email, setEmail] = useState('')
   const [user, setUser] = useState<any>(null)
   const [loading, setLoading] = useState(false)
-
   useEffect(() => {
+    if (!supabase) return
     async function init() {
       try {
         const { data } = await supabase.auth.getSession()
@@ -30,7 +30,7 @@ export default function Auth() {
     if (!email) return alert('请输入邮箱以登录（magic link）')
     setLoading(true)
     try {
-      const { error } = await supabase.auth.signInWithOtp({ email })
+      const { error } = await supabase?.auth.signInWithOtp({ email })
       if (error) alert('发送失败：' + error.message)
       else alert('已发送登录链接到邮箱，请查收（演示模式）。')
     } catch (e:any) {
@@ -39,10 +39,10 @@ export default function Auth() {
   }
 
   async function signOut() {
-    try { await supabase.auth.signOut() } catch {}
+    try { await supabase?.auth.signOut() } catch {}
   }
 
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  if (!supabase) {
     return <div className="text-sm text-gray-400">未配置 Supabase（启用保存功能请设置 NEXT_PUBLIC_SUPABASE_URL 与 NEXT_PUBLIC_SUPABASE_ANON_KEY）</div>
   }
 

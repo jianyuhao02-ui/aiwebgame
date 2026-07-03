@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { name, prompt, myItems, mascot } = req.body || {};
   if (!name) return res.status(400).json({ error: 'Missing name' });
 
-  const url = process.env.SUPABASE_URL;
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const key = process.env.SUPABASE_SERVICE_KEY; // should be service_role key for server-side
   if (!url || !key) {
     return res.status(501).json({ error: 'Supabase not configured on server. Use client localStorage fallback.' });

@@ -155,7 +155,7 @@ export default function Home() {
   }
 
   async function savePet() {
-    const name = prompt('给你的宠物/微应用起个名字：') || ('pet-' + Date.now());
+    const name = window.prompt('给你的宠物/微应用起个名字：') || ('pet-' + Date.now());
     try {
       const res = await fetch('/api/save', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ name, prompt, myItems, mascot }) });
       const j = await res.json();
